@@ -1,0 +1,20 @@
+{{template "header"}}
+
+<h1>Welcome to ToDo List</h1>
+<a href="/index">Home</a><br>
+<a href="/delete">Delete</a><br>
+<br>
+
+<form method="POST">
+    <label for="Name">Task Name</label>
+    <input type="text" id="TaskName" name="TaskName">
+    <br>
+    <label for="Date">Due Date</label>
+    <input type="text" id="DueDate" name="DueDate">
+    <br>
+    <input type="submit">
+</form>
+{{if ne . 0}}
+    <i> New record ID is: {{.}}</i>
+{{end}}
+{{template "footer"}}

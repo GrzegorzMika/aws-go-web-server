@@ -1,0 +1,12 @@
+{{template "header"}}
+
+<h1>Welcome to ToDo List</h1>
+<a href="/add">Add</a><br>
+<a href="/delete">Delete</a><br>
+
+<h3>List of task</h3>
+{{range .}}
+    <li>Task Name: {{.TaskName}} Due Date: {{.DueDate}}</li>
+{{end}}
+
+{{template "footer"}}
