@@ -1,6 +1,7 @@
 package main
 
 import (
+	"aws-web-server/models"
 	"aws-web-server/webserver"
 	"database/sql"
 	"fmt"
@@ -129,7 +130,7 @@ func index(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	var Tasks []webserver.Task
+	var Tasks []models.Task
 
 	rows, err := db.Query("SELECT task_name, due_date FROM task ORDER BY due_date DESC;")
 	if err != nil {
@@ -137,7 +138,7 @@ func index(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	for rows.Next() {
-		var task webserver.Task
+		var task models.Task
 		err = rows.Scan(&task.TaskName, &task.DueDate)
 		if err != nil {
 			webserver.HandleError(err, w)
@@ -175,7 +176,7 @@ func addTask(w http.ResponseWriter, req *http.Request) {
 	}
 
 	if req.Method == http.MethodPost {
-		var task webserver.Task
+		var task models.Task
 		err = req.ParseForm()
 		if err != nil {
 			webserver.HandleError(err, w)
@@ -245,7 +246,7 @@ func loginUser(w http.ResponseWriter, req *http.Request) {
 	}
 
 	if req.Method == http.MethodPost {
-		var user webserver.AppUser
+		var user models.AppUser
 		un := req.FormValue("username")
 		p := req.FormValue("password")
 		user, err := webserver.GetUser(db, un)

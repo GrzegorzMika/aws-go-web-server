@@ -1,6 +1,7 @@
 package webserver
 
 import (
+	"aws-web-server/models"
 	"database/sql"
 	"fmt"
 	"golang.org/x/crypto/bcrypt"
@@ -14,16 +15,6 @@ const (
 	Password = "password123"
 	DbName   = "web_server"
 )
-
-type Task struct {
-	TaskName string
-	DueDate  string
-}
-
-type AppUser struct {
-	UserName string
-	Password string
-}
 
 func Connect() (*sql.DB, error) {
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
@@ -54,7 +45,7 @@ func CreateTableUsers(db *sql.DB) error {
 	return err
 }
 
-func InsertTask(db *sql.DB, t *Task) (error, int) {
+func InsertTask(db *sql.DB, t *models.Task) (error, int) {
 	sqlStatement := `
 	INSERT INTO task (task_name, due_date)
 	VALUES ($1, $2)
@@ -85,7 +76,7 @@ func DeleteTask(db *sql.DB, taskName string) (error, int) {
 	return nil, id
 }
 
-func InsertUser(db *sql.DB, u *AppUser) (error, int) {
+func InsertUser(db *sql.DB, u *models.AppUser) (error, int) {
 	sqlStatement := `
 	INSERT INTO users (user_name, password)
 	VALUES ($1, $2)
@@ -117,22 +108,22 @@ func DeleteUser(db *sql.DB, userName string) (error, int) {
 	return nil, id
 }
 
-func GetUser(db *sql.DB, userName string) (AppUser, error) {
+func GetUser(db *sql.DB, userName string) (models.AppUser, error) {
 	rows, err := db.Query("SELECT user_name, password FROM users WHERE user_name = $1 LIMIT 1;", userName)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			log.Println("User not found")
-			return AppUser{}, nil
+			return models.AppUser{}, nil
 		}
 		log.Println("Some error occurred while querying user:", err)
-		return AppUser{}, err
+		return models.AppUser{}, err
 	}
-	var user AppUser
+	var user models.AppUser
 	for rows.Next() {
 		err = rows.Scan(&user.UserName, &user.Password)
 		if err != nil {
 			log.Println("Some error occurred while scanning user:", err)
-			return AppUser{}, err
+			return models.AppUser{}, err
 		}
 	}
 	return user, nil
