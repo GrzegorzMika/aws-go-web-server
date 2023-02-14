@@ -1,10 +1,8 @@
 package webserver
 
 import (
-	"aws-web-server/models"
 	"database/sql"
 	"fmt"
-	"golang.org/x/crypto/bcrypt"
 	"log"
 )
 
@@ -43,88 +41,4 @@ func CreateTableUsers(db *sql.DB) error {
 	}
 	_, err = stmt.Exec()
 	return err
-}
-
-func InsertTask(db *sql.DB, t *models.Task) (error, int) {
-	sqlStatement := `
-	INSERT INTO task (task_name, due_date)
-	VALUES ($1, $2)
-	RETURNING id`
-	id := 0
-	err := db.QueryRow(sqlStatement, t.TaskName, t.DueDate).Scan(&id)
-	if err != nil {
-		return err, 0
-	}
-	log.Println("New record ID is:", id)
-	return nil, id
-}
-
-func DeleteTask(db *sql.DB, taskName string) (error, int) {
-	sqlStatement := `
-    DELETE FROM task
-    WHERE task_name = $1
-    RETURNING id`
-	id := 0
-	err := db.QueryRow(sqlStatement, taskName).Scan(&id)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, 0
-		}
-		return err, 0
-	}
-	log.Println("Deleted record ID is:", id)
-	return nil, id
-}
-
-func InsertUser(db *sql.DB, u *models.AppUser) (error, int) {
-	sqlStatement := `
-	INSERT INTO users (user_name, password)
-	VALUES ($1, $2)
-	RETURNING id`
-	id := 0
-	password, _ := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)
-	err := db.QueryRow(sqlStatement, u.UserName, string(password)).Scan(&id)
-	if err != nil {
-		return err, 0
-	}
-	log.Println("New record ID is:", id)
-	return nil, id
-}
-
-func DeleteUser(db *sql.DB, userName string) (error, int) {
-	sqlStatement := `
-    DELETE FROM users
-    WHERE user_name = $1
-    RETURNING id`
-	id := 0
-	err := db.QueryRow(sqlStatement, userName).Scan(&id)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, 0
-		}
-		return err, 0
-	}
-	log.Println("Deleted record ID is:", id)
-	return nil, id
-}
-
-func GetUser(db *sql.DB, userName string) (models.AppUser, error) {
-	rows, err := db.Query("SELECT user_name, password FROM users WHERE user_name = $1 LIMIT 1;", userName)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			log.Println("User not found")
-			return models.AppUser{}, nil
-		}
-		log.Println("Some error occurred while querying user:", err)
-		return models.AppUser{}, err
-	}
-	var user models.AppUser
-	for rows.Next() {
-		err = rows.Scan(&user.UserName, &user.Password)
-		if err != nil {
-			log.Println("Some error occurred while scanning user:", err)
-			return models.AppUser{}, err
-		}
-	}
-	return user, nil
 }

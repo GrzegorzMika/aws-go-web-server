@@ -1,0 +1,114 @@
+package controllers
+
+import (
+	"aws-web-server/models"
+	"aws-web-server/webserver"
+	"database/sql"
+	"fmt"
+	"github.com/pkg/errors"
+	"github.com/redis/go-redis/v9"
+	"html/template"
+	"net/http"
+	"time"
+)
+
+type AppController struct {
+	UserController
+	TaskController
+	tpl *template.Template
+}
+
+func NewAppController(rdbmsSession *sql.DB, redisSession *redis.Client, appTemplates *template.Template) *AppController {
+	return &AppController{
+		UserController: *NewUserController(rdbmsSession, redisSession),
+		TaskController: *NewTaskController(rdbmsSession),
+		tpl:            appTemplates,
+	}
+}
+
+func (ac *AppController) ExecuteTemplate(w http.ResponseWriter, name string, data interface{}) {
+	err := ac.tpl.ExecuteTemplate(w, name, data)
+	if err != nil {
+		webserver.HandleError(err, w)
+		return
+	}
+}
+
+func (ac *AppController) LoginUser(w http.ResponseWriter, req *http.Request) {
+	if ac.IsAuthenticated(req) {
+		http.Redirect(w, req, "/", http.StatusSeeOther)
+		return
+	}
+
+	if req.Method == http.MethodPost {
+		ac.UserController.LoginUser(w, req)
+	}
+
+	ac.ExecuteTemplate(w, "login.gohtml", nil)
+}
+
+func (ac *AppController) LogoutUser(w http.ResponseWriter, req *http.Request) {
+	ac.UserController.LogoutUser(w, req)
+}
+
+func (ac *AppController) DeleteTask(w http.ResponseWriter, req *http.Request) {
+	if !ac.IsAuthenticated(req) {
+		http.Redirect(w, req, "/login", http.StatusSeeOther)
+		return
+	}
+	var id int
+	var err error
+
+	if req.Method == http.MethodPost {
+		err = req.ParseForm()
+		if err != nil {
+			webserver.HandleError(err, w)
+			return
+		}
+		taskName := req.PostForm["deleteTaskName"][0]
+		err, id = models.DeleteTask(ac.TaskController.rdbmsSession, taskName)
+		if err != nil {
+			webserver.HandleError(err, w)
+			return
+		}
+	}
+
+	ac.RefreshUserSession(w, req)
+	ac.ExecuteTemplate(w, "delete.gohtml", id)
+}
+
+func (ac *AppController) AddTask(w http.ResponseWriter, req *http.Request) {
+	if !ac.IsAuthenticated(req) {
+		http.Redirect(w, req, "/login", http.StatusSeeOther)
+		return
+	}
+
+	var err error
+	var id int
+
+	if req.Method == http.MethodPost {
+		var task models.Task
+		err = req.ParseForm()
+		if err != nil {
+			webserver.HandleError(err, w)
+			return
+		}
+		task.TaskName = req.PostForm["TaskName"][0]
+		task.DueDate = req.PostForm["DueDate"][0]
+		_, err = time.Parse("2006-01-02", task.DueDate)
+		if err != nil {
+			err = errors.Wrap(err, fmt.Sprintf("Invalid value for due date provided: %s. "+
+				"Expected is date of form 2023-10-01", task.DueDate))
+			webserver.HandleError(err, w)
+			return
+		}
+		err, id = models.InsertTask(ac.TaskController.rdbmsSession, &task)
+		if err != nil {
+			webserver.HandleError(err, w)
+			return
+		}
+	}
+
+	ac.RefreshUserSession(w, req)
+	ac.ExecuteTemplate(w, "add.gohtml", id)
+}

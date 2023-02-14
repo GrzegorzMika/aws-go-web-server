@@ -2,8 +2,6 @@ package webserver
 
 import (
 	"fmt"
-	"github.com/pkg/errors"
-	"github.com/redis/go-redis/v9"
 	"io"
 	"log"
 	"net/http"
@@ -33,30 +31,4 @@ func Instance(w http.ResponseWriter, req *http.Request) {
 	resp.Body.Read(bs)
 	resp.Body.Close()
 	io.WriteString(w, string(bs))
-}
-
-func RefreshCookie(w http.ResponseWriter, req *http.Request, cacheDb *redis.Client, expiration int) error {
-	c, err := req.Cookie("session")
-	if err != nil {
-		return errors.Wrap(err, "failed to get session cookie")
-	}
-	userName, err := GetRedis(cacheDb, c.Value)
-	if err == nil {
-		err = SetRedis(cacheDb, c.Value, userName, expiration)
-		if err != nil {
-			if err, ok := err.(*RedisError); ok {
-				return errors.Wrap(err.Err, err.Msg)
-			}
-			return errors.Wrap(err, "failed to set redis session info")
-		}
-	} else {
-		if err, ok := err.(*RedisError); ok {
-			return errors.Wrap(err.Err, err.Msg)
-		}
-		return errors.Wrap(err, "failed to connect to redis")
-	}
-	// refresh session
-	c.MaxAge = expiration
-	http.SetCookie(w, c)
-	return nil
 }

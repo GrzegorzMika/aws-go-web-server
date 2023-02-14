@@ -24,59 +24,6 @@ func NewUserController(rdbmsSession *sql.DB, redisSession *redis.Client) *UserCo
 	}
 }
 
-func (uc *UserController) GetUser(userName string) (*models.AppUser, error) {
-	rows, err := uc.rdbmsSession.Query("SELECT user_name, password FROM users WHERE user_name = $1 LIMIT 1;", userName)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			log.Println("User not found")
-			return &models.AppUser{}, nil
-		}
-		log.Println("Some error occurred while querying user:", err)
-		return &models.AppUser{}, err
-	}
-	var user models.AppUser
-	for rows.Next() {
-		err = rows.Scan(&user.UserName, &user.Password)
-		if err != nil {
-			log.Println("Some error occurred while scanning user:", err)
-			return &models.AppUser{}, err
-		}
-	}
-	return &user, nil
-}
-
-func (uc *UserController) InsertUser(user *models.AppUser) (error, int) {
-	sqlStatement := `
-	INSERT INTO users (user_name, password)
-	VALUES ($1, $2)
-	RETURNING id`
-	id := 0
-	password, _ := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
-	err := uc.rdbmsSession.QueryRow(sqlStatement, user.UserName, string(password)).Scan(&id)
-	if err != nil {
-		return err, 0
-	}
-	log.Println("New record ID is:", id)
-	return nil, id
-}
-
-func (uc *UserController) DeleteUser(userName string) (error, int) {
-	sqlStatement := `
-    DELETE FROM users
-    WHERE user_name = $1
-    RETURNING id`
-	id := 0
-	err := uc.rdbmsSession.QueryRow(sqlStatement, userName).Scan(&id)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, 0
-		}
-		return err, 0
-	}
-	log.Println("Deleted record ID is:", id)
-	return nil, id
-}
-
 func (uc *UserController) LogoutUser(w http.ResponseWriter, req *http.Request) {
 	c, err := req.Cookie("session")
 	if err != nil {
@@ -111,7 +58,7 @@ func (uc *UserController) IsAuthenticated(req *http.Request) bool {
 }
 
 func (uc *UserController) LoginUser(w http.ResponseWriter, req *http.Request) {
-	user, err := uc.GetUser(req.FormValue("username"))
+	user, err := models.GetUser(uc.rdbmsSession, req.FormValue("username"))
 	if err != nil {
 		http.Error(w, "Username and/or password do not match", http.StatusForbidden)
 		return
@@ -139,7 +86,7 @@ func (uc *UserController) LoginUser(w http.ResponseWriter, req *http.Request) {
 	return
 }
 
-func (uc *UserController) RefreshUserSession(w http.ResponseWriter, req *http.Request) error {
+func (uc *UserController) refreshUserSession(w http.ResponseWriter, req *http.Request) error {
 	c, err := req.Cookie("session")
 	if err != nil {
 		return errors.Wrap(err, "Failed to get session cookie")
@@ -163,4 +110,11 @@ func (uc *UserController) RefreshUserSession(w http.ResponseWriter, req *http.Re
 	c.MaxAge = models.SessionTimeout
 	http.SetCookie(w, c)
 	return nil
+}
+
+func (uc *UserController) RefreshUserSession(w http.ResponseWriter, req *http.Request) {
+	err := uc.refreshUserSession(w, req)
+	if err != nil {
+		webserver.HandleError(err, w)
+	}
 }
