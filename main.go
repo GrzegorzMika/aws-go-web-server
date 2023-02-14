@@ -23,7 +23,6 @@ var tpl *template.Template
 
 const logFile = "./webserver.log"
 const webPort = ":80"
-const sessionTimeout = 600
 
 func check(err error) {
 	if err != nil {
@@ -96,7 +95,7 @@ func dog(w http.ResponseWriter, req *http.Request) {
 		http.Redirect(w, req, "/login", http.StatusFound)
 		return
 	}
-	err := webserver.RefreshCookie(w, req, rdb, sessionTimeout)
+	err := webserver.RefreshCookie(w, req, rdb, models.SessionTimeout)
 	if err != nil {
 		webserver.HandleError(err, w)
 		return
@@ -124,7 +123,7 @@ func index(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	err := webserver.RefreshCookie(w, req, rdb, sessionTimeout)
+	err := webserver.RefreshCookie(w, req, rdb, models.SessionTimeout)
 	if err != nil {
 		webserver.HandleError(err, w)
 		return
@@ -169,7 +168,7 @@ func addTask(w http.ResponseWriter, req *http.Request) {
 	var err error
 	var id int
 
-	err = webserver.RefreshCookie(w, req, rdb, sessionTimeout)
+	err = webserver.RefreshCookie(w, req, rdb, models.SessionTimeout)
 	if err != nil {
 		webserver.HandleError(err, w)
 		return
@@ -212,7 +211,7 @@ func deleteTask(w http.ResponseWriter, req *http.Request) {
 	var err error
 	var id int
 
-	err = webserver.RefreshCookie(w, req, rdb, sessionTimeout)
+	err = webserver.RefreshCookie(w, req, rdb, models.SessionTimeout)
 	if err != nil {
 		webserver.HandleError(err, w)
 		return
@@ -265,10 +264,10 @@ func loginUser(w http.ResponseWriter, req *http.Request) {
 		c := &http.Cookie{
 			Name:   "session",
 			Value:  sID.String(),
-			MaxAge: sessionTimeout,
+			MaxAge: models.SessionTimeout,
 		}
 		http.SetCookie(w, c)
-		err = webserver.SetRedis(rdb, c.Value, user.UserName, sessionTimeout)
+		err = webserver.SetRedis(rdb, c.Value, user.UserName, models.SessionTimeout)
 		if err != nil {
 			webserver.HandleError(err, w)
 			return
