@@ -8,7 +8,9 @@ import (
 	"github.com/pkg/errors"
 	"github.com/redis/go-redis/v9"
 	"html/template"
+	"math/rand"
 	"net/http"
+	"os"
 	"time"
 )
 
@@ -111,4 +113,45 @@ func (ac *AppController) AddTask(w http.ResponseWriter, req *http.Request) {
 
 	ac.RefreshUserSession(w, req)
 	ac.ExecuteTemplate(w, "add.gohtml", id)
+}
+
+func (ac *AppController) ShowList(w http.ResponseWriter, req *http.Request) {
+	if !ac.IsAuthenticated(req) {
+		http.Redirect(w, req, "/login", http.StatusSeeOther)
+		return
+	}
+
+	var Tasks []models.Task
+	Tasks, err := models.GetAllTasks(ac.TaskController.rdbmsSession)
+	if err != nil {
+		webserver.HandleError(err, w)
+		return
+	}
+
+	if len(Tasks) == 0 {
+		http.Redirect(w, req, "/success", http.StatusSeeOther)
+		return
+	}
+
+	ac.RefreshUserSession(w, req)
+	ac.ExecuteTemplate(w, "index.gohtml", Tasks)
+}
+
+func (ac *AppController) SuccessPage(w http.ResponseWriter, req *http.Request) {
+	if !ac.IsAuthenticated(req) {
+		http.Redirect(w, req, "/login", http.StatusSeeOther)
+		return
+	}
+
+	files, err := os.ReadDir("./assets/")
+	if err != nil {
+		webserver.HandleError(err, w)
+		return
+	}
+
+	img := files[rand.Intn(len(files))].Name()
+	w.Header().Add("Content-Type", "text/html; charset=utf-8")
+
+	ac.RefreshUserSession(w, req)
+	ac.ExecuteTemplate(w, "success.gohtml", img)
 }
