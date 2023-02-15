@@ -1,0 +1,11 @@
+version: "3.8"
+
+services:
+  web-server:
+    image: "906350741214.dkr.ecr.eu-north-1.amazonaws.com/go-web-server:latest"
+    ports:
+      - "80:80"
+    security_opt:
+      - no-new-privileges
+    volumes:
+      - ./logs:/app/logs

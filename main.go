@@ -16,7 +16,7 @@ var db *sql.DB
 var rdb *redis.Client
 var tpl *template.Template
 
-const logFile = "./webserver.log"
+const logFile = "./logs/webserver.log"
 const webPort = ":80"
 
 func check(err error) {
