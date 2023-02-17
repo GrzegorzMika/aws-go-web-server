@@ -45,10 +45,11 @@ func main() {
 	check(err)
 	defer db.Close()
 
-	rdb = webserver.ConnectRedis()
+	rdb, err = webserver.ConnectRedis()
+	check(err)
 	defer rdb.Close()
 
-	s3bucket, err := models.NewS3Bucket("eu-north-1")
+	s3bucket := models.NewS3Bucket("eu-north-1")
 	check(err)
 
 	err = webserver.CreateTableUsers(db)

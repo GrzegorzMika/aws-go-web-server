@@ -14,16 +14,13 @@ type S3Bucket struct {
 	svc     *s3.S3
 }
 
-func NewS3Bucket(region string) (*S3Bucket, error) {
-	sess, err := session.NewSession(&aws.Config{Region: aws.String(region)})
-	if err != nil {
-		return nil, err
-	}
+func NewS3Bucket(region string) *S3Bucket {
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
 
 	return &S3Bucket{
 		session: sess,
 		svc:     s3.New(sess),
-	}, nil
+	}
 }
 
 func (sb S3Bucket) ListS3Content(bucket string) ([]string, error) {

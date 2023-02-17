@@ -4,22 +4,22 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
-)
-
-const (
-	Host     = "aws-postgres.cppudhyhknsc.eu-north-1.rds.amazonaws.com"
-	Port     = 5432
-	User     = "postgres"
-	Password = "password123"
-	DbName   = "web_server"
+	"os"
 )
 
 func Connect() (*sql.DB, error) {
-	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
+	psqlInfo := fmt.Sprintf("host=%s port=%s user=%s "+
 		"password=%s dbname=%s sslmode=disable",
-		Host, Port, User, Password, DbName)
+		os.Getenv("POSTGRES_HOST"),
+		os.Getenv("POSTGRES_PORT"),
+		os.Getenv("POSTGRES_USER"),
+		os.Getenv("POSTGRES_PASSWORD"),
+		os.Getenv("POSTGRES_DB"))
 	db, err := sql.Open("pgx", psqlInfo)
-	log.Println("Connected to PostgresSQL database")
+	if err != nil {
+		return nil, err
+	}
+	log.Println("INFO: Connected to PostgresSQL database")
 	return db, err
 }
 

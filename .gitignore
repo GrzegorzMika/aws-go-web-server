@@ -1,3 +1,4 @@
 /.idea
 /aws-web-server
 /.env
+/logs/

@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# clean go mod
+go mod tidy
+
 # build and push the image to the registry
 aws ecr get-login-password --region eu-north-1 | docker login --username AWS --password-stdin 906350741214.dkr.ecr.eu-north-1.amazonaws.com
 docker build -t go-web-server .

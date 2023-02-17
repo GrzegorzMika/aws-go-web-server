@@ -5,14 +5,8 @@ import (
 	"fmt"
 	"github.com/redis/go-redis/v9"
 	"log"
+	"os"
 	"time"
-)
-
-const (
-	RedisHost     = "gowebservercache-003.g2o7mj.0001.eun1.cache.amazonaws.com"
-	RedisPort     = "6379"
-	RedisPassword = ""
-	RedisDB       = 0
 )
 
 var ctx = context.Background()
@@ -26,14 +20,18 @@ func (e *RedisError) Error() string {
 	return e.Err.Error()
 }
 
-func ConnectRedis() *redis.Client {
+func ConnectRedis() (*redis.Client, error) {
 	rdb := redis.NewClient(&redis.Options{
-		Addr:     RedisHost + ":" + RedisPort,
-		Password: RedisPassword,
-		DB:       RedisDB,
+		Addr:     os.Getenv("REDIS_HOST") + ":" + os.Getenv("REDIS_PORT"),
+		Password: os.Getenv("REDIS_PASSWORD"),
+		DB:       0,
 	})
-	log.Println("Connected to Redis server")
-	return rdb
+	_, err := rdb.Ping(ctx).Result()
+	if err != nil {
+		return nil, err
+	}
+	log.Println("INFO: Connected to Redis server")
+	return rdb, nil
 }
 
 func SetRedis(rdb *redis.Client, key string, value string, timeout int) error {
