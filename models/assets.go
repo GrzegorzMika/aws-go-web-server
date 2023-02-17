@@ -1,19 +1,29 @@
 package models
 
 import (
-	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"log"
-	"os"
+	"time"
 )
 
 type S3Bucket struct {
 	session *session.Session
 	svc     *s3.S3
+}
+
+func NewS3Bucket(region string) (*S3Bucket, error) {
+	sess, err := session.NewSession(&aws.Config{Region: aws.String(region)})
+	if err != nil {
+		return nil, err
+	}
+
+	return &S3Bucket{
+		session: sess,
+		svc:     s3.New(sess),
+	}, nil
 }
 
 func (sb S3Bucket) ListS3Content(bucket string) ([]string, error) {
@@ -45,28 +55,17 @@ func (sb S3Bucket) ListS3Content(bucket string) ([]string, error) {
 	return fileNames, nil
 }
 
-func (sb S3Bucket) DownloadS3File(bucket, key string) error {
-	// Create a downloader with the session and default options
-	downloader := s3manager.NewDownloader(sb.session)
-
-	// Create a file to write the S3 Object contents to.
-	f, err := os.Create(key)
-	if err != nil {
-		return fmt.Errorf("failed to create file %q, %v", key, err)
-	}
-
-	// Write the contents of S3 Object to the file
-	n, err := downloader.Download(f, &s3.GetObjectInput{
+func (sb S3Bucket) GetURL(bucket, key string) (string, error) {
+	req, _ := sb.svc.GetObjectRequest(&s3.GetObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
 	})
-	if err != nil {
-		return fmt.Errorf("failed to download file, %v", err)
-	}
-	log.Printf("file downloaded, %d bytes\n", n)
-	return nil
-}
+	urlStr, err := req.Presign(SessionTimeout * time.Second)
 
-func (sb S3Bucket) RefreshAssets() error {
-	return nil
+	if err != nil {
+		log.Println("Failed to sign request", err)
+		return "", err
+	}
+
+	return urlStr, nil
 }

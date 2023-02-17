@@ -11,6 +11,4 @@ COPY . .
 
 RUN go build -o /aws-web-server
 
-EXPOSE 80
-
 CMD [ "/aws-web-server" ]

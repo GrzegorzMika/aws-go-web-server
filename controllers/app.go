@@ -8,23 +8,25 @@ import (
 	"github.com/pkg/errors"
 	"github.com/redis/go-redis/v9"
 	"html/template"
+	"log"
 	"math/rand"
 	"net/http"
-	"os"
 	"time"
 )
 
 type AppController struct {
 	UserController
 	TaskController
+	AssetController
 	tpl *template.Template
 }
 
-func NewAppController(rdbmsSession *sql.DB, redisSession *redis.Client, appTemplates *template.Template) *AppController {
+func NewAppController(rdbmsSession *sql.DB, redisSession *redis.Client, appTemplates *template.Template, s3bucket *models.S3Bucket) *AppController {
 	return &AppController{
-		UserController: *NewUserController(rdbmsSession, redisSession),
-		TaskController: *NewTaskController(rdbmsSession),
-		tpl:            appTemplates,
+		UserController:  *NewUserController(rdbmsSession, redisSession),
+		TaskController:  *NewTaskController(rdbmsSession),
+		AssetController: *NewAssetController(s3bucket),
+		tpl:             appTemplates,
 	}
 }
 
@@ -143,13 +145,20 @@ func (ac *AppController) SuccessPage(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	files, err := os.ReadDir("./assets/")
+	files, err := ac.AssetController.sb.ListS3Content("go-web-server-assets")
 	if err != nil {
 		webserver.HandleError(err, w)
 		return
 	}
 
-	img := files[rand.Intn(len(files))].Name()
+	imgName := files[rand.Intn(len(files))]
+	log.Printf("imgName: %s", imgName)
+	img, err := ac.AssetController.sb.GetURL("go-web-server-assets", imgName)
+	if err != nil {
+		webserver.HandleError(err, w)
+		return
+	}
+	log.Printf("img: %s", img)
 	w.Header().Add("Content-Type", "text/html; charset=utf-8")
 
 	ac.RefreshUserSession(w, req)
