@@ -7,8 +7,8 @@ import (
 	"database/sql"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/redis/go-redis/v9"
+	log "github.com/sirupsen/logrus"
 	"html/template"
-	"log"
 	"net/http"
 	"os"
 )
@@ -22,7 +22,7 @@ const webPort = ":80"
 
 func check(err error) {
 	if err != nil {
-		log.Panicln(err)
+		log.Error(err)
 	}
 }
 
@@ -33,12 +33,19 @@ func init() {
 func main() {
 	var err error
 
+	log.SetFormatter(&log.JSONFormatter{
+		FieldMap: log.FieldMap{
+			log.FieldKeyTime: "@timestamp",
+			log.FieldKeyMsg:  "message",
+		},
+	})
+	log.SetLevel(log.TraceLevel)
+
 	f, err := os.OpenFile(logFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		log.Fatalf("error opening file: %v", err)
 	}
 	defer f.Close()
-
 	log.SetOutput(f)
 
 	db, err = webserver.Connect()

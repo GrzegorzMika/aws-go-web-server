@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	"github.com/redis/go-redis/v9"
+	log "github.com/sirupsen/logrus"
 	"html/template"
-	"log"
 	"math/rand"
 	"net/http"
 	"time"
@@ -152,13 +152,12 @@ func (ac *AppController) SuccessPage(w http.ResponseWriter, req *http.Request) {
 	}
 
 	imgName := files[rand.Intn(len(files))]
-	log.Printf("imgName: %s", imgName)
 	img, err := ac.AssetController.sb.GetURL("go-web-server-assets", imgName)
 	if err != nil {
 		webserver.HandleError(err, w)
 		return
 	}
-	log.Printf("img: %s", img)
+	log.WithFields(log.Fields{"ImageName": imgName, "ImageURL": img}).Info("Image selected and get from S3")
 	w.Header().Add("Content-Type", "text/html; charset=utf-8")
 
 	ac.RefreshUserSession(w, req)

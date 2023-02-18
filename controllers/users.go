@@ -7,8 +7,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/redis/go-redis/v9"
 	uuid "github.com/satori/go.uuid"
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
-	"log"
 	"net/http"
 )
 
@@ -50,7 +50,7 @@ func (uc *UserController) IsAuthenticated(req *http.Request) bool {
 	}
 	if err != nil {
 		if err, ok := err.(*webserver.RedisError); ok {
-			log.Println("Error happened in redis: ", err.Error())
+			log.Error("Error happened in redis: ", err.Error())
 		}
 		return false
 	}

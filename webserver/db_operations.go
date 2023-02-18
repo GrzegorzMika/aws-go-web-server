@@ -3,7 +3,7 @@ package webserver
 import (
 	"database/sql"
 	"fmt"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"os"
 )
 
@@ -18,9 +18,16 @@ func Connect() (*sql.DB, error) {
 	db, err := sql.Open("pgx", psqlInfo)
 	if err != nil {
 		return nil, err
+	} else {
+		log.Info("Connection to PostgreSQL created")
 	}
-	log.Println("INFO: Connected to PostgresSQL database")
-	return db, err
+	err = db.Ping()
+	if err != nil {
+		return nil, err
+	} else {
+		log.Info("Successfully connected to PostgresSQL database")
+	}
+	return db, nil
 }
 
 func CreateTableTask(db *sql.DB) error {

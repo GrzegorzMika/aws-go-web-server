@@ -3,7 +3,7 @@ package models
 import (
 	"database/sql"
 	"github.com/pkg/errors"
-	"log"
+	log "github.com/sirupsen/logrus"
 )
 
 type Task struct {
@@ -21,7 +21,7 @@ func InsertTask(rdbmsSession *sql.DB, task *Task) (error, int) {
 	if err != nil {
 		return err, 0
 	}
-	log.Println("New record ID is:", id)
+	log.WithFields(log.Fields{"TaskID": id}).Info("New task created")
 	return nil, id
 }
 
@@ -38,11 +38,11 @@ func DeleteTask(rdbmsSession *sql.DB, taskName string) (error, int) {
 		}
 		return err, 0
 	}
-	log.Println("Deleted record ID is:", id)
+	log.WithFields(log.Fields{"TaskID": id}).Info("Task deleted")
 	return nil, id
 }
 
-func GetTask(rdbmsSession *sql.DB, taskName string) (*Task, error) {
+func getTask(rdbmsSession *sql.DB, taskName string) (*Task, error) {
 	sqlStatement := `
     SELECT task_name, due_date
     FROM task
@@ -51,17 +51,17 @@ func GetTask(rdbmsSession *sql.DB, taskName string) (*Task, error) {
 	rows, err := rdbmsSession.Query(sqlStatement, taskName)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			log.Println("Task not found")
+			log.Warning("Task not found")
 			return &Task{}, nil
 		}
-		log.Println("Some error occurred while querying task:", err)
+		log.Error("Some error occurred while querying task:", err)
 		return &Task{}, err
 	}
 	var task Task
 	for rows.Next() {
 		err = rows.Scan(&task.TaskName, &task.DueDate)
 		if err != nil {
-			log.Println("Some error occurred while scanning task:", err)
+			log.Error("Some error occurred while scanning task:", err)
 			return &Task{}, err
 		}
 	}

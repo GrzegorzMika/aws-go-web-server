@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/redis/go-redis/v9"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"os"
 	"time"
 )
@@ -30,7 +30,7 @@ func ConnectRedis() (*redis.Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	log.Println("INFO: Connected to Redis server")
+	log.Info("Connected to Redis server")
 	return rdb, nil
 }
 

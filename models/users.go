@@ -2,8 +2,8 @@ package models
 
 import (
 	"database/sql"
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
-	"log"
 )
 
 type AppUser struct {
@@ -15,17 +15,17 @@ func GetUser(rdbmsSession *sql.DB, userName string) (*AppUser, error) {
 	rows, err := rdbmsSession.Query("SELECT user_name, password FROM users WHERE user_name = $1 LIMIT 1;", userName)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			log.Println("User not found")
+			log.Warning("User not found")
 			return &AppUser{}, nil
 		}
-		log.Println("Some error occurred while querying user:", err)
+		log.Error("Some error occurred while querying user:", err)
 		return &AppUser{}, err
 	}
 	var user AppUser
 	for rows.Next() {
 		err = rows.Scan(&user.UserName, &user.Password)
 		if err != nil {
-			log.Println("Some error occurred while scanning user:", err)
+			log.Error("Some error occurred while scanning user:", err)
 			return &AppUser{}, err
 		}
 	}
@@ -43,7 +43,7 @@ func InsertUser(rdbmsSession *sql.DB, user *AppUser) (error, int) {
 	if err != nil {
 		return err, 0
 	}
-	log.Println("New record ID is:", id)
+	log.Info("New user created with ID:", id)
 	return nil, id
 }
 
@@ -60,6 +60,6 @@ func DeleteUser(rdbmsSession *sql.DB, userName string) (error, int) {
 		}
 		return err, 0
 	}
-	log.Println("Deleted record ID is:", id)
+	log.Info("User deleted successfully with id:", id)
 	return nil, id
 }

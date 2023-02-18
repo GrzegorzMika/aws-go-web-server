@@ -5,7 +5,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"time"
 )
 
@@ -36,12 +36,12 @@ func (sb S3Bucket) ListS3Content(bucket string) ([]string, error) {
 		if aerr, ok := err.(awserr.Error); ok {
 			switch aerr.Code() {
 			case s3.ErrCodeNoSuchBucket:
-				log.Println(s3.ErrCodeNoSuchBucket, aerr.Error())
+				log.Error(s3.ErrCodeNoSuchBucket, aerr.Error())
 			default:
-				log.Println(aerr.Error())
+				log.Error(aerr)
 			}
 		} else {
-			log.Println(err.Error())
+			log.Error(err)
 		}
 		return fileNames, err
 	}
@@ -60,7 +60,7 @@ func (sb S3Bucket) GetURL(bucket, key string) (string, error) {
 	urlStr, err := req.Presign(SessionTimeout * time.Second)
 
 	if err != nil {
-		log.Println("Failed to sign request", err)
+		log.Warning("Failed to sign request", err)
 		return "", err
 	}
 
