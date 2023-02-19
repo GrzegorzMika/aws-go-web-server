@@ -6,6 +6,7 @@ import (
 	"aws-web-server/webserver"
 	"database/sql"
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/pkg/errors"
 	"github.com/redis/go-redis/v9"
 	log "github.com/sirupsen/logrus"
 	"html/template"
@@ -19,12 +20,6 @@ var tpl *template.Template
 
 const logFile = "./logs/webserver.log"
 const webPort = ":80"
-
-func check(err error) {
-	if err != nil {
-		log.Error(err)
-	}
-}
 
 func init() {
 	tpl = template.Must(template.ParseGlob("templates/*.gohtml"))
@@ -43,26 +38,36 @@ func main() {
 
 	f, err := os.OpenFile(logFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
-		log.Fatalf("error opening file: %v", err)
+		log.Fatalf("Error opening log file: %v", err)
 	}
-	defer f.Close()
+	defer webserver.DeferredError(f)
 	log.SetOutput(f)
 
 	db, err = webserver.Connect()
-	check(err)
-	defer db.Close()
+	if err != nil {
+		log.Error(errors.Wrap(err, "Failed to connect to PostgresSQl database"))
+	}
+	defer webserver.DeferredError(db)
 
 	rdb, err = webserver.ConnectRedis()
-	check(err)
-	defer rdb.Close()
+	if err != nil {
+		log.Error(errors.Wrap(err, "Failed to connect to Redis database"))
+	}
+	defer webserver.DeferredError(rdb)
 
 	s3bucket := models.NewS3Bucket("eu-north-1")
-	check(err)
+	if err != nil {
+		log.Error(errors.Wrap(err, "Failed to connect to S3 bucket"))
+	}
 
 	err = webserver.CreateTableUsers(db)
-	check(err)
+	if err != nil {
+		log.Error(errors.Wrap(err, "Failed to create users table"))
+	}
 	err = webserver.CreateTableTask(db)
-	check(err)
+	if err != nil {
+		log.Error(errors.Wrap(err, "Failed to create task table"))
+	}
 
 	appController := controllers.NewAppController(db, rdb, tpl, s3bucket)
 
@@ -70,7 +75,6 @@ func main() {
 	http.HandleFunc("/add", appController.AddTask)
 	http.HandleFunc("/delete", appController.DeleteTask)
 	http.HandleFunc("/success", appController.SuccessPage)
-	http.Handle("/assets/", http.StripPrefix("/assets", http.FileServer(http.Dir("./assets"))))
 	http.HandleFunc("/login", appController.LoginUser)
 	http.HandleFunc("/logout", appController.LogoutUser)
 	http.HandleFunc("/instance", webserver.Instance)

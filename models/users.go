@@ -32,6 +32,7 @@ func GetUser(rdbmsSession *sql.DB, userName string) (*AppUser, error) {
 	return &user, nil
 }
 
+//goland:noinspection GoUnusedExportedFunction
 func InsertUser(rdbmsSession *sql.DB, user *AppUser) (error, int) {
 	sqlStatement := `
 	INSERT INTO users (user_name, password)
@@ -47,6 +48,7 @@ func InsertUser(rdbmsSession *sql.DB, user *AppUser) (error, int) {
 	return nil, id
 }
 
+//goland:noinspection GoUnusedExportedFunction
 func DeleteUser(rdbmsSession *sql.DB, userName string) (error, int) {
 	sqlStatement := `
     DELETE FROM users

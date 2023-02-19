@@ -42,7 +42,8 @@ func DeleteTask(rdbmsSession *sql.DB, taskName string) (error, int) {
 	return nil, id
 }
 
-func getTask(rdbmsSession *sql.DB, taskName string) (*Task, error) {
+//goland:noinspection GoUnusedExportedFunction
+func GetTask(rdbmsSession *sql.DB, taskName string) (*Task, error) {
 	sqlStatement := `
     SELECT task_name, due_date
     FROM task

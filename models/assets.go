@@ -33,12 +33,12 @@ func (sb S3Bucket) ListS3Content(bucket string) ([]string, error) {
 
 	result, err := sb.svc.ListObjectsV2(input)
 	if err != nil {
-		if aerr, ok := err.(awserr.Error); ok {
-			switch aerr.Code() {
+		if tmpErr, ok := err.(awserr.Error); ok {
+			switch tmpErr.Code() {
 			case s3.ErrCodeNoSuchBucket:
-				log.Error(s3.ErrCodeNoSuchBucket, aerr.Error())
+				log.Error(s3.ErrCodeNoSuchBucket, tmpErr.Error())
 			default:
-				log.Error(aerr)
+				log.Error(tmpErr)
 			}
 		} else {
 			log.Error(err)

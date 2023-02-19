@@ -3,9 +3,18 @@ package webserver
 import (
 	"database/sql"
 	"fmt"
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+	"io"
 	"os"
 )
+
+func DeferredError(function io.Closer) {
+	if tmpErr := function.Close(); tmpErr != nil {
+		log.Error(errors.Wrap(tmpErr, "Failed to close deferred error"))
+		return
+	}
+}
 
 func Connect() (*sql.DB, error) {
 	psqlInfo := fmt.Sprintf("host=%s port=%s user=%s "+
@@ -19,7 +28,7 @@ func Connect() (*sql.DB, error) {
 	if err != nil {
 		return nil, err
 	} else {
-		log.Info("Connection to PostgreSQL created")
+		log.Info("Connection to PostgresSQL created")
 	}
 	err = db.Ping()
 	if err != nil {
@@ -32,7 +41,7 @@ func Connect() (*sql.DB, error) {
 
 func CreateTableTask(db *sql.DB) error {
 	stmt, err := db.Prepare("CREATE TABLE IF NOT EXISTS task (id SERIAL PRIMARY KEY, task_name TEXT, due_date TIMESTAMPTZ);")
-	defer stmt.Close()
+	defer DeferredError(stmt)
 	if err != nil {
 		return err
 	}
@@ -42,7 +51,7 @@ func CreateTableTask(db *sql.DB) error {
 
 func CreateTableUsers(db *sql.DB) error {
 	stmt, err := db.Prepare("CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, user_name TEXT UNIQUE, password TEXT);")
-	defer stmt.Close()
+	DeferredError(stmt)
 	if err != nil {
 		return err
 	}
