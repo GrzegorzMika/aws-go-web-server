@@ -51,7 +51,7 @@ func CreateTableTask(db *sql.DB) error {
 
 func CreateTableUsers(db *sql.DB) error {
 	stmt, err := db.Prepare("CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, user_name TEXT UNIQUE, password TEXT);")
-	DeferredError(stmt)
+	defer DeferredError(stmt)
 	if err != nil {
 		return err
 	}

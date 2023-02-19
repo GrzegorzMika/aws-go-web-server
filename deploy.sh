@@ -2,6 +2,7 @@
 
 # clean go mod
 go mod tidy
+go mod verify
 
 # build and push the image to the registry
 aws ecr get-login-password --region eu-north-1 | docker login --username AWS --password-stdin 906350741214.dkr.ecr.eu-north-1.amazonaws.com
