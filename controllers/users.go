@@ -14,21 +14,21 @@ import (
 )
 
 type UserController struct {
-	appContext   context.Context
 	rdbmsSession *sql.DB
 	redisSession *redis.Client
+	appContext   context.Context
 }
 
 func NewUserController(ctx context.Context, rdbmsSession *sql.DB, redisSession *redis.Client) *UserController {
 	return &UserController{
-		appContext:   ctx,
 		rdbmsSession: rdbmsSession,
 		redisSession: redisSession,
+		appContext:   ctx,
 	}
 }
 
 func (uc *UserController) LogoutUser(w http.ResponseWriter, req *http.Request) {
-	c, err := req.Cookie("session")
+	c, err := req.Cookie(models.SessionCookieName)
 	if err != nil {
 		http.Redirect(w, req, "/login", http.StatusSeeOther)
 	}
@@ -42,7 +42,7 @@ func (uc *UserController) LogoutUser(w http.ResponseWriter, req *http.Request) {
 }
 
 func (uc *UserController) IsAuthenticated(req *http.Request) bool {
-	c, err := req.Cookie("session")
+	c, err := req.Cookie(models.SessionCookieName)
 	if err != nil {
 		return false
 	}
@@ -61,7 +61,7 @@ func (uc *UserController) IsAuthenticated(req *http.Request) bool {
 }
 
 func (uc *UserController) LoginUser(w http.ResponseWriter, req *http.Request) {
-	user, err := models.GetUser(uc.rdbmsSession, req.FormValue("username"))
+	user, err := models.GetUser(uc.appContext, uc.rdbmsSession, req.FormValue("username"))
 	if err != nil {
 		http.Error(w, "Username and/or password do not match", http.StatusForbidden)
 		return
@@ -75,7 +75,7 @@ func (uc *UserController) LoginUser(w http.ResponseWriter, req *http.Request) {
 	// create session
 	sID := uuid.NewV4()
 	c := &http.Cookie{
-		Name:   "session",
+		Name:   models.SessionCookieName,
 		Value:  sID.String(),
 		MaxAge: models.SessionTimeout,
 	}
@@ -90,7 +90,7 @@ func (uc *UserController) LoginUser(w http.ResponseWriter, req *http.Request) {
 }
 
 func (uc *UserController) refreshUserSession(w http.ResponseWriter, req *http.Request) error {
-	c, err := req.Cookie("session")
+	c, err := req.Cookie(models.SessionCookieName)
 	if err != nil {
 		return errors.Wrap(err, "Failed to get session cookie")
 	}

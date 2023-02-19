@@ -24,3 +24,4 @@ ssh -i "$HOME/.ssh/20230129-aws.pem" ubuntu@ec2-16-170-236-95.eu-north-1.compute
 
 # cleanup
 docker system prune --force
+docker logout

@@ -19,16 +19,18 @@ type AppController struct {
 	UserController
 	TaskController
 	AssetController
-	tpl *template.Template
+	tpl        *template.Template
+	AppContext context.Context
 }
 
 func NewAppController(ctx context.Context, rdbmsSession *sql.DB, redisSession *redis.Client,
 	appTemplates *template.Template, s3bucket *models.S3Bucket) *AppController {
 	return &AppController{
 		UserController:  *NewUserController(ctx, rdbmsSession, redisSession),
-		TaskController:  *NewTaskController(ctx, rdbmsSession),
-		AssetController: *NewAssetController(ctx, s3bucket),
+		TaskController:  *NewTaskController(rdbmsSession),
+		AssetController: *NewAssetController(s3bucket),
 		tpl:             appTemplates,
+		AppContext:      ctx,
 	}
 }
 
@@ -72,7 +74,7 @@ func (ac *AppController) DeleteTask(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 		taskName := req.PostForm["deleteTaskName"][0]
-		err, id = models.DeleteTask(ac.TaskController.rdbmsSession, taskName)
+		err, id = models.DeleteTask(ac.AppContext, ac.TaskController.rdbmsSession, taskName)
 		if err != nil {
 			webserver.HandleError(err, w)
 			return
@@ -108,7 +110,7 @@ func (ac *AppController) AddTask(w http.ResponseWriter, req *http.Request) {
 			webserver.HandleError(err, w)
 			return
 		}
-		err, id = models.InsertTask(ac.TaskController.rdbmsSession, &task)
+		err, id = models.InsertTask(ac.AppContext, ac.TaskController.rdbmsSession, &task)
 		if err != nil {
 			webserver.HandleError(err, w)
 			return
@@ -126,7 +128,7 @@ func (ac *AppController) ShowList(w http.ResponseWriter, req *http.Request) {
 	}
 
 	var Tasks []models.Task
-	Tasks, err := models.GetAllTasks(ac.TaskController.rdbmsSession)
+	Tasks, err := models.GetAllTasks(ac.AppContext, ac.TaskController.rdbmsSession)
 	if err != nil {
 		webserver.HandleError(err, w)
 		return

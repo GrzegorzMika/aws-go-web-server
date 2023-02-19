@@ -1,9 +1,11 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
+	"time"
 )
 
 type AppUser struct {
@@ -11,8 +13,10 @@ type AppUser struct {
 	Password string
 }
 
-func GetUser(rdbmsSession *sql.DB, userName string) (*AppUser, error) {
-	rows, err := rdbmsSession.Query("SELECT user_name, password FROM users WHERE user_name = $1 LIMIT 1;", userName)
+func GetUser(ctx context.Context, rdbmsSession *sql.DB, userName string) (*AppUser, error) {
+	ctxTimeout, cancel := context.WithTimeout(ctx, ConnectionTimeout*time.Second)
+	defer cancel()
+	rows, err := rdbmsSession.QueryContext(ctxTimeout, "SELECT user_name, password FROM users WHERE user_name = $1 LIMIT 1;", userName)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			log.Warning("User not found")
@@ -33,14 +37,16 @@ func GetUser(rdbmsSession *sql.DB, userName string) (*AppUser, error) {
 }
 
 //goland:noinspection GoUnusedExportedFunction
-func InsertUser(rdbmsSession *sql.DB, user *AppUser) (error, int) {
+func InsertUser(ctx context.Context, rdbmsSession *sql.DB, user *AppUser) (error, int) {
+	ctxTimeout, cancel := context.WithTimeout(ctx, ConnectionTimeout*time.Second)
+	defer cancel()
 	sqlStatement := `
 	INSERT INTO users (user_name, password)
 	VALUES ($1, $2)
 	RETURNING id`
 	id := 0
 	password, _ := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
-	err := rdbmsSession.QueryRow(sqlStatement, user.UserName, string(password)).Scan(&id)
+	err := rdbmsSession.QueryRowContext(ctxTimeout, sqlStatement, user.UserName, string(password)).Scan(&id)
 	if err != nil {
 		return err, 0
 	}
@@ -49,13 +55,15 @@ func InsertUser(rdbmsSession *sql.DB, user *AppUser) (error, int) {
 }
 
 //goland:noinspection GoUnusedExportedFunction
-func DeleteUser(rdbmsSession *sql.DB, userName string) (error, int) {
+func DeleteUser(ctx context.Context, rdbmsSession *sql.DB, userName string) (error, int) {
+	ctxTimeout, cancel := context.WithTimeout(ctx, ConnectionTimeout*time.Second)
+	defer cancel()
 	sqlStatement := `
     DELETE FROM users
     WHERE user_name = $1
     RETURNING id`
 	id := 0
-	err := rdbmsSession.QueryRow(sqlStatement, userName).Scan(&id)
+	err := rdbmsSession.QueryRowContext(ctxTimeout, sqlStatement, userName).Scan(&id)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, 0
