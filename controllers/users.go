@@ -3,6 +3,7 @@ package controllers
 import (
 	"aws-web-server/models"
 	"aws-web-server/webserver"
+	"context"
 	"database/sql"
 	"github.com/pkg/errors"
 	"github.com/redis/go-redis/v9"
@@ -13,12 +14,14 @@ import (
 )
 
 type UserController struct {
+	appContext   context.Context
 	rdbmsSession *sql.DB
 	redisSession *redis.Client
 }
 
-func NewUserController(rdbmsSession *sql.DB, redisSession *redis.Client) *UserController {
+func NewUserController(ctx context.Context, rdbmsSession *sql.DB, redisSession *redis.Client) *UserController {
 	return &UserController{
+		appContext:   ctx,
 		rdbmsSession: rdbmsSession,
 		redisSession: redisSession,
 	}

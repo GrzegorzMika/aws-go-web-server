@@ -4,6 +4,7 @@ import (
 	"aws-web-server/controllers"
 	"aws-web-server/models"
 	"aws-web-server/webserver"
+	"context"
 	"database/sql"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/pkg/errors"
@@ -43,6 +44,8 @@ func main() {
 	defer webserver.DeferredError(f)
 	log.SetOutput(f)
 
+	ctx := context.Background()
+
 	db, err = webserver.Connect()
 	if err != nil {
 		log.Error(errors.Wrap(err, "Failed to connect to PostgresSQl database"))
@@ -69,7 +72,7 @@ func main() {
 		log.Error(errors.Wrap(err, "Failed to create task table"))
 	}
 
-	appController := controllers.NewAppController(db, rdb, tpl, s3bucket)
+	appController := controllers.NewAppController(ctx, db, rdb, tpl, s3bucket)
 
 	http.HandleFunc("/", appController.ShowList)
 	http.HandleFunc("/add", appController.AddTask)

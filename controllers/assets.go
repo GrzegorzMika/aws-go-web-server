@@ -1,13 +1,18 @@
 package controllers
 
-import "aws-web-server/models"
+import (
+	"aws-web-server/models"
+	"golang.org/x/net/context"
+)
 
 type AssetController struct {
-	sb models.S3Bucket
+	appContext context.Context
+	sb         models.S3Bucket
 }
 
-func NewAssetController(sb *models.S3Bucket) *AssetController {
+func NewAssetController(ctx context.Context, sb *models.S3Bucket) *AssetController {
 	return &AssetController{
-		sb: *sb,
+		appContext: ctx,
+		sb:         *sb,
 	}
 }

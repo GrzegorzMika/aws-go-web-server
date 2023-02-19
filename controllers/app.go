@@ -3,6 +3,7 @@ package controllers
 import (
 	"aws-web-server/models"
 	"aws-web-server/webserver"
+	"context"
 	"database/sql"
 	"fmt"
 	"github.com/pkg/errors"
@@ -21,11 +22,12 @@ type AppController struct {
 	tpl *template.Template
 }
 
-func NewAppController(rdbmsSession *sql.DB, redisSession *redis.Client, appTemplates *template.Template, s3bucket *models.S3Bucket) *AppController {
+func NewAppController(ctx context.Context, rdbmsSession *sql.DB, redisSession *redis.Client,
+	appTemplates *template.Template, s3bucket *models.S3Bucket) *AppController {
 	return &AppController{
-		UserController:  *NewUserController(rdbmsSession, redisSession),
-		TaskController:  *NewTaskController(rdbmsSession),
-		AssetController: *NewAssetController(s3bucket),
+		UserController:  *NewUserController(ctx, rdbmsSession, redisSession),
+		TaskController:  *NewTaskController(ctx, rdbmsSession),
+		AssetController: *NewAssetController(ctx, s3bucket),
 		tpl:             appTemplates,
 	}
 }
