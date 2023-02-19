@@ -4,11 +4,29 @@ import (
 	"database/sql"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+	"time"
 )
 
 type Task struct {
 	TaskName string
 	DueDate  string
+}
+
+type DecoratedRow struct {
+	*sql.Row
+}
+
+func (r *DecoratedRow) DecorateScan(retryAttempts int, retryDelay int, dest ...any) error {
+	var err error
+	for i := 0; i < retryAttempts; i++ {
+		err = r.Scan(dest...)
+		if err == nil || err == sql.ErrNoRows {
+			return nil
+		} else {
+			time.Sleep(time.Duration(retryDelay) * time.Second)
+		}
+	}
+	return err
 }
 
 func InsertTask(rdbmsSession *sql.DB, task *Task) (error, int) {
@@ -17,7 +35,8 @@ func InsertTask(rdbmsSession *sql.DB, task *Task) (error, int) {
 	VALUES ($1, $2)
 	RETURNING id`
 	id := 0
-	err := rdbmsSession.QueryRow(sqlStatement, task.TaskName, task.DueDate).Scan(&id)
+	rows := rdbmsSession.QueryRow(sqlStatement, task.TaskName, task.DueDate)
+	err := (&DecoratedRow{rows}).DecorateScan(3, 1, &id)
 	if err != nil {
 		return err, 0
 	}
@@ -31,7 +50,8 @@ func DeleteTask(rdbmsSession *sql.DB, taskName string) (error, int) {
     WHERE task_name = $1
     RETURNING id`
 	id := 0
-	err := rdbmsSession.QueryRow(sqlStatement, taskName).Scan(&id)
+	rows := rdbmsSession.QueryRow(sqlStatement, taskName)
+	err := (&DecoratedRow{rows}).DecorateScan(3, 1, &id)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, 0

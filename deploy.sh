@@ -6,7 +6,7 @@ go mod verify
 
 # build and push the image to the registry
 aws ecr get-login-password --region eu-north-1 | docker login --username AWS --password-stdin 906350741214.dkr.ecr.eu-north-1.amazonaws.com
-docker build -t go-web-server .
+docker build -t go-web-server . || exit 1
 docker tag go-web-server:latest 906350741214.dkr.ecr.eu-north-1.amazonaws.com/go-web-server:latest
 docker push 906350741214.dkr.ecr.eu-north-1.amazonaws.com/go-web-server:latest
 
